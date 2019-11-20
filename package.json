@@ -1,0 +1,27 @@
+{
+  "bundleDependencies": [],
+  "dependencies": {
+    "alasql": "^0.5.1"
+  },
+  "deprecated": false,
+  "description": "A Node-RED node to query input json using SQL",
+  "homepage": "https://github.com/Gippsman2017/node-red-contrib-query-json-with-sql#readme",
+  "keywords": [
+    "node-red",
+    "json",
+    "alaSQL",
+    "SQL"
+  ],
+  "licence": "Apache V2.0",
+  "name": "node-red-contrib-query-json-with-sql",
+  "node-red": {
+    "nodes": {
+      "jsonsql": "jsonSql.js"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Gippsman2017/node-red-contrib-query-json-with-sql.git"
+  },
+  "version": "0.0.1"
+}
