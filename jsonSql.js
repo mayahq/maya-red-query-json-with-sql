@@ -266,7 +266,7 @@ module.exports = function (RED) {
             }
         }
 
-        this.checkall = n.checkall || "true";
+        this.checkall = n.checkall !== 'false';
         this.previousValue = null;
         var node = this;
         var valid = true;
@@ -523,19 +523,23 @@ module.exports = function (RED) {
 
         this.on('input', function (msg) {
             console.log('on input:', msg, ' rules:', node.rules);
-            node.rules.forEach((rule, index) => {
-                let result;
+            for (const [index, rule] of node.rules.entries()) {
+                let result, error;
                 try {
                     result = alasql(rule.v, [msg.payload]);
                 } catch (e) {
-                    result = {
+                    error = {
                         error:'Error executing query at index ' + index + ': '+rule.v,
                         exception: e
                     };
                 }
-                sendMessageToOutput(index, result);
-            })
-            // processMessageQueue(msg);
+                sendMessageToOutput(index, error || result);
+                if(!node.checkall){
+                    if(result && result.length >0) {
+                        break;
+                    }
+                }
+            }
         });
 
         this.on('close', function () {
