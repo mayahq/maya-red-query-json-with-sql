@@ -512,7 +512,7 @@ module.exports = function (RED) {
                 }
                 processMessageQueue()
             });
-        }
+        };
 
         function sendMessageToOutput(index, result) {
             const output = new Array(index + 1).fill(null);
