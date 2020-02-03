@@ -97,21 +97,19 @@
         outputs: 1,
         outputLabels: function(index) {
             var rule = this.rules[index];
+            var queryPrefix = 'SELECT * FROM ? WHERE ';
             var label = "";
             if (rule) {
-                for (var i=0;i<operators.length;i++) {
-                    if (operators[i].v === rule.t) {
-                        label = /^switch/.test(operators[i].t)?this._(operators[i].t):operators[i].t;
-                        break;
+                if (rule.v) {
+                    var upperCaseRule = rule.v.toUpperCase();
+                    if (upperCaseRule.startsWith(queryPrefix)) {
+                        label = rule.v.substring(queryPrefix.length);
+                    } else {
+                        label = rule.v;
                     }
                 }
-                if ((rule.t === 'btwn') || (rule.t === 'index')) {
-                    label += " "+getValueLabel(rule.vt,rule.v)+" & "+getValueLabel(rule.v2t,rule.v2);
-                } else if (rule.t !== 'true' && rule.t !== 'false' && rule.t !== 'null' && rule.t !== 'nnull' && rule.t !== 'empty' && rule.t !== 'nempty' && rule.t !== 'else' ) {
-                    label += " "+getValueLabel(rule.vt,rule.v);
-                }
-                return label;
             }
+            return label;
         },
         icon: "parser-json.png",
         label: function() {
@@ -186,7 +184,7 @@
                     var row = $('<div/>').appendTo(container);
                     var row2 = $('<div/>',{style:"padding-top: 5px; padding-left: 175px;"}).appendTo(container);
                     var row3 = $('<div/>',{style:"padding-top: 5px; padding-left: 102px;"}).appendTo(container);
-                    var selectField = $('<select/>',{style:"width:120px; margin-left: 5px; text-align: center;"}).appendTo(row);
+                    var selectField = $('<select/>',{style:"width:120px; margin-left: 5px; text-align: center;"})/*.appendTo(row)*/;
                     var group0 = $('<optgroup/>', { label: "value rules" }).appendTo(selectField);
                     for (var d in operators) {
                         if(operators[d].kind === 'V') {
