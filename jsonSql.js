@@ -517,12 +517,12 @@ module.exports = function (RED) {
         function sendMessageToOutput(index, result) {
             const output = new Array(index + 1).fill(null);
             output[index] = [result];
-            console.log('going to send output:', output);
+//            console.log('going to send output:', output);
             node.send(output);
         }
 
         this.on('input', function (msg) {
-            console.log('on input:', msg, ' rules:', node.rules);
+//            console.log('on input:', msg, ' rules:', node.rules);
             for (const [index, rule] of node.rules.entries()) {
                 let result, error;
                 try {
