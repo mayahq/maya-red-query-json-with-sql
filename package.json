@@ -23,5 +23,5 @@
     "type": "git",
     "url": "git+https://github.com/Gippsman2017/node-red-contrib-query-json-with-sql.git"
   },
-  "version": "0.1.0"
+  "version": "0.1.1"
 }
