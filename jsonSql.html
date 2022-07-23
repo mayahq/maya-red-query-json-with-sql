@@ -15,6 +15,13 @@
 -->
 
 <script type="text/x-red" data-template-name="jsonsql">
+    <style>
+        pre .bot-scheduler-code {
+            font-size: 9px;
+            text-align: left;
+            white-space: pre-line;
+        }
+    </style>
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
         <input type="text" id="node-input-name">
@@ -129,7 +136,7 @@
             var caseLabel = this._("switch.ignorecase");
 
             function resizeRule(rule) {
-                var newWidth = rule.width();
+                var newWidth = 600;
                 var selectField = rule.find("select");
                 var type = selectField.val()||"";
                 var valueField = rule.find(".node-input-rule-value");
@@ -394,3 +401,50 @@
     });
 })();
 </script>
+
+<script type="text/html" data-help-name="jsonsql">
+    <h2 data-type="description-title">Description</h2>
+    <p data-type="description-summary">Query and extract details from a JSON object using SQL queries.</p>
+    <h3>Inputs</h3>
+        <dl class="message-properties">
+                    <dt>payload<span class="property-type">object | array</span></dt>
+                    <dd>
+                        Pass in a tabular data in JSON form, like this : 
+                        <br/>
+                        Example data : 
+                        <code>[
+                            {
+                                "movie": "Midway",
+                                "rating": "good"
+                            },
+                            {
+                                "movie": "Patton",
+                                "rating": "alright"
+                            }
+                        ]</code>
+                        <br/>
+                        Example query : 
+                        
+                        <code>
+                            select * from ? where movie = "Midway"
+                        </code>
+                        
+                    </dd>
+        </dl>
+    
+     <h3>Outputs</h3>
+         <ol class="node-ports">
+             <li>Standard output
+                 <dl class="message-properties">
+                     <dt>payload <span class="property-type">array</span></dt>
+                     <dd>The queried data from the SQL queries are received in <code>msg.payload</code> for each port added.</dd>
+                 </dl>
+             </li>
+             <!--<li>Standard error
+                 <dl class="message-properties">
+                     <dt>payload <span class="property-type">string</span></dt>
+                     <dd>the standard error of the command.</dd>
+                 </dl>
+             </li>-->
+         </ol>
+    </script>

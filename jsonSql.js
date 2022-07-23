@@ -514,11 +514,21 @@ module.exports = function (RED) {
             });
         };
 
-        function sendMessageToOutput(index, result) {
+        function sendMessageToOutput(index, result, msg) {
             const output = new Array(index + 1).fill(null);
             output[index] = [result];
-//            console.log('going to send output:', output);
-            node.send(output);
+            // msg.payload = output
+            // console.log('going to send output:', msg, output);
+            var sendOutput = output.map((item)=>{
+                if (item){
+                    return { payload : item }
+                } else {
+                    return null
+                }
+                
+            })
+            console.log('going to send output:', sendOutput);
+            node.send(sendOutput);
         }
 
         this.on('input', function (msg) {
@@ -533,7 +543,7 @@ module.exports = function (RED) {
                         exception: e
                     };
                 }
-                sendMessageToOutput(index, error || result);
+                sendMessageToOutput(index, error || result, msg);
                 if(!node.checkall){
                     if(result && result.length >0) {
                         break;
