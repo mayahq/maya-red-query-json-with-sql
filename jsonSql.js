@@ -523,7 +523,7 @@ module.exports = function (RED) {
             if (output.length > 1) {
                 sendOutput = output.map((item)=>{
                     if (item){
-                        return { payload : item[0] }
+                        return { ...msg, payload : item[0] }
                     } else {
                         return null
                     }
@@ -531,7 +531,7 @@ module.exports = function (RED) {
                 })
             } else {
                 console.log("SINGLE", output, output[0], output[0][0])
-                sendOutput = { payload : output[0][0] }
+                sendOutput = { ...msg, payload : output[0][0] }
             }
             
             console.log('going to send output:', sendOutput, "output:", output);
