@@ -514,7 +514,54 @@ module.exports = function (RED) {
             });
         };
 
-        function sendMessageToOutput(index, result, msg) {
+        function getTypeMap(tableData) {
+            const lastRow = tableData[tableData.length - 1]
+            const typeMap = {}
+
+            Object.entries(lastRow.fields).forEach(([key, val]) => typeMap[key] = val.type)
+            return typeMap
+        }
+
+        function generateTypedTable(payload, tableData) {
+            if (!Array.isArray(tableData) || tableData.length === 0) {
+                return []
+            }
+            
+            const table = []
+            const typeMap = getTypeMap(tableData)
+
+            payload.forEach(row => {
+                const typedRow = {}
+                Object.keys(row).forEach(key => {
+                    if (typeMap[key]) {
+                        typedRow[key] = {
+                            value: row[key],
+                            type: typeMap[key]
+                        }
+                    } else {
+                        let type = 'string',
+                            value = row[key]
+                        if (typeof row[key] === 'number') {
+                            type = 'number'
+                        } else if (typeof row[key] === 'boolean') {
+                            type = 'boolean'
+                        } else {
+                            type = 'string'
+                            value = row[key].toString()
+                        }
+                        typedRow[key] = {
+                            value: value,
+                            type: type
+                        }
+                    }
+                })
+                table.push(typedRow)
+            })
+
+            return table
+        }
+
+        function sendMessageToOutput(index, result, msg, tableData) {
             const output = new Array(index + 1).fill(null);
             output[index] = [result];
             // msg.payload = output
@@ -523,7 +570,12 @@ module.exports = function (RED) {
             if (output.length > 1) {
                 sendOutput = output.map((item)=>{
                     if (item){
-                        return { ...msg, payload : item[0] }
+                        const newMsg = { ...msg, payload : item[0] }
+                        try {
+                            newMsg.table = generateTypedTable(item[0], tableData)
+                        } catch (e) {
+                            console.log('Error adding types:', e)
+                        }
                     } else {
                         return null
                     }
@@ -532,6 +584,12 @@ module.exports = function (RED) {
             } else {
                 console.log("SINGLE", output, output[0], output[0][0])
                 sendOutput = { ...msg, payload : output[0][0] }
+                try {
+                    sendOutput.table = generateTypedTable(output[0][0], tableData)
+                } catch (e) {
+                    console.log('Error adding types:', e)
+                }
+
             }
             
             console.log('going to send output:', sendOutput, "output:", output);
@@ -550,7 +608,7 @@ module.exports = function (RED) {
                         exception: e
                     };
                 }
-                sendMessageToOutput(index, error || result, msg);
+                sendMessageToOutput(index, error || result, msg, msg.table);
                 if(!node.checkall){
                     if(result && result.length >0) {
                         break;
