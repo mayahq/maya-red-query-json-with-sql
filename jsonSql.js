@@ -530,11 +530,11 @@ module.exports = function (RED) {
             const table = []
             const typeMap = getTypeMap(tableData)
 
-            payload.forEach(row => {
-                const typedRow = {}
+            payload.forEach((row, idx) => {
+                const typedRowFields = {}
                 Object.keys(row).forEach(key => {
                     if (typeMap[key]) {
-                        typedRow[key] = {
+                        typedRowFields[key] = {
                             value: row[key],
                             type: typeMap[key]
                         }
@@ -549,12 +549,19 @@ module.exports = function (RED) {
                             type = 'string'
                             value = row[key].toString()
                         }
-                        typedRow[key] = {
+                        typedRowFields[key] = {
                             value: value,
                             type: type
                         }
                     }
                 })
+                const typedRow = {
+                    _identifier: {
+                        type: 'rowIndex',
+                        value: idx.toString()
+                    },
+                    fields: typedRowFields
+                }
                 table.push(typedRow)
             })
 
