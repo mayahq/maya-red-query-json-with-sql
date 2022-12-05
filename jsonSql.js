@@ -590,7 +590,6 @@ module.exports = function (RED) {
                     
                 })
             } else {
-                console.log("SINGLE", output, output[0], output[0][0])
                 sendOutput = { ...msg, payload : output[0][0] }
                 try {
                     sendOutput.table = generateTypedTable(output[0][0], tableData)
@@ -608,8 +607,21 @@ module.exports = function (RED) {
 //            console.log('on input:', msg, ' rules:', node.rules);
             for (const [index, rule] of node.rules.entries()) {
                 let result, error;
+                let input = [msg.payload]
                 try {
-                    result = alasql(rule.v, [msg.payload]);
+                    if(msg.table && msg.table.length > 0){
+                        let t = []
+                        msg.table.forEach(r => {
+                            let cols = Object.keys(r["fields"])
+                            let row = {}
+                            for(let index = 0; index < cols.length; index++){
+                                row[cols[index]] = r["fields"][cols[index]]["value"]
+                            }
+                            t.push(row)
+                        })
+                        input = [t]
+                    }
+                    result = alasql(rule.v, input);
                 } catch (e) {
                     error = {
                         error:'Error executing query at index ' + index + ': '+rule.v,
