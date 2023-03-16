@@ -534,6 +534,10 @@ module.exports = function (RED) {
                 console.log('row', row)
                 const typedRowFields = {}
                 Object.keys(row).forEach(key => {
+                    if (key === '__mayaId') {
+                        return
+                    }
+
                     if (typeMap[key]) {
                         typedRowFields[key] = {
                             value: row[key] || '',
@@ -563,6 +567,15 @@ module.exports = function (RED) {
                     },
                     fields: typedRowFields
                 }
+                if (row.__mayaId) {
+                    const parts = row.__mayaId.split(':::')
+                    if (parts.length === 2) {
+                        typedRow._identifier = {
+                            type: parts[0],
+                            value: parts[1]
+                        }
+                    }
+                }
                 table.push(typedRow)
             })
 
@@ -581,6 +594,7 @@ module.exports = function (RED) {
                         const newMsg = { ...msg, payload : item[0] }
                         try {
                             newMsg.table = generateTypedTable(item[0], tableData)
+                            newMsg.rowData = newMsg.table
                         } catch (e) {
                             console.log('Error adding types:', e)
                         }
@@ -593,6 +607,7 @@ module.exports = function (RED) {
                 sendOutput = { ...msg, payload : output[0][0] }
                 try {
                     sendOutput.table = generateTypedTable(output[0][0], tableData)
+                    sendOutput.rowData = sendOutput.table
                 } catch (e) {
                     console.log('Error adding types:', e)
                 }
@@ -608,19 +623,30 @@ module.exports = function (RED) {
             for (const [index, rule] of node.rules.entries()) {
                 let result, error;
                 let input = [msg.payload]
+                let table = msg.rowData
+                if (!table) {
+                    table = msg.table
+                }
                 try {
-                    if(msg.table && msg.table.length > 0){
+                    if(table && table.length > 0){
                         let t = []
-                        msg.table.forEach(r => {
+                        table.forEach(r => {
                             let cols = Object.keys(r["fields"])
                             let row = {}
                             for(let index = 0; index < cols.length; index++){
                                 row[cols[index]] = r["fields"][cols[index]]["value"]
                             }
+                            row.__mayaId = `${r?._identifier.type}:::${r._identifier.value}`
                             t.push(row)
                         })
                         input = [t]
                     }
+                    console.log('da rule', rule)
+
+                    if (rule.v.startsWith('SELECT')) {
+                        rule.v = rule.v.replace('SELECT', 'SELECT __mayaId,')
+                    }
+
                     result = alasql(rule.v, input);
                 } catch (e) {
                     error = {
@@ -628,7 +654,7 @@ module.exports = function (RED) {
                         exception: e
                     };
                 }
-                sendMessageToOutput(index, error || result, msg, msg.table);
+                sendMessageToOutput(index, error || result, msg, table);
                 if(!node.checkall){
                     if(result && result.length >0) {
                         break;
