@@ -1,4 +1,6 @@
 {
+  "name": "@mayahq/maya-red-query-json-with-sql",
+  "version": "1.0.9",
   "bundleDependencies": [],
   "dependencies": {
     "alasql": "^0.5.1"
@@ -13,7 +15,6 @@
     "SQL"
   ],
   "licence": "Apache V2.0",
-  "name": "@mayahq/maya-red-query-json-with-sql",
   "node-red": {
     "nodes": {
       "jsonsql": "jsonSql.js"
@@ -22,6 +23,5 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mayahq/maya-red-query-json-with-sql.git"
-  },
-  "version": "1.0.8"
+  }
 }
