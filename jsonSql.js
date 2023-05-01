@@ -1,4 +1,5 @@
 const alasql = require('alasql');
+const {validateRowUpdateTypeData} = require('./utils')
 
 module.exports = function (RED) {
     "use strict";
@@ -531,7 +532,6 @@ module.exports = function (RED) {
             const typeMap = getTypeMap(tableData)
 
             payload.forEach((row, idx) => {
-                console.log('row', row)
                 const typedRowFields = {}
                 Object.keys(row).forEach(key => {
                     if (key === '__mayaId') {
@@ -591,10 +591,10 @@ module.exports = function (RED) {
             if (output.length > 1) {
                 sendOutput = output.map((item)=>{
                     if (item){
-                        const newMsg = { ...msg, payload : item[0] }
+                        const newMsg = { ...msg }
                         try {
-                            newMsg.table = generateTypedTable(item[0], tableData)
-                            newMsg.rowData = newMsg.table
+                                newMsg.rowData = generateTypedTable(item[0], tableData)
+                                // newMsg.rowData = newMsg.table
                         } catch (e) {
                             console.log('Error adding types:', e)
                         }
@@ -604,62 +604,75 @@ module.exports = function (RED) {
                     
                 })
             } else {
-                sendOutput = { ...msg, payload : output[0][0] }
+                sendOutput = { ...msg }
                 try {
-                    sendOutput.table = generateTypedTable(output[0][0], tableData)
-                    sendOutput.rowData = sendOutput.table
+                    sendOutput.rowData = generateTypedTable(output[0][0], tableData)
+                    // sendOutput.rowData = sendOutput.table
                 } catch (e) {
                     console.log('Error adding types:', e)
                 }
 
             }
             
-            console.log('going to send output:', sendOutput, "output:", output);
+            // console.log('going to send output:', sendOutput, "output:", output);
             node.send(sendOutput);
         }
 
         this.on('input', function (msg) {
-//            console.log('on input:', msg, ' rules:', node.rules);
-            for (const [index, rule] of node.rules.entries()) {
-                let result, error;
-                let input = [msg.payload]
-                let table = msg.rowData
-                if (!table) {
-                    table = msg.table
-                }
-                try {
-                    if(table && table.length > 0){
-                        let t = []
-                        table.forEach(r => {
-                            let cols = Object.keys(r["fields"])
-                            let row = {}
-                            for(let index = 0; index < cols.length; index++){
-                                row[cols[index]] = r["fields"][cols[index]]["value"]
+            try {
+                let input = RED.util.evaluateNodeProperty(this.property, this.propertyType, node, msg)
+                const isTableSpec = validateRowUpdateTypeData(input)
+                // console.log(validateRowUpdateTypeData(input))
+                for (const [index, rule] of node.rules.entries()) {
+                    let result, error, table;
+                    try {
+                        if (isTableSpec){
+                            table = input
+                            if(table && table.length > 0){
+                                let t = []
+                                table.forEach(r => {
+                                    let cols = Object.keys(r["fields"])
+                                    let row = {}
+                                    for(let index = 0; index < cols.length; index++){
+                                        row[cols[index]] = r["fields"][cols[index]]["value"]
+                                    }
+                                    row.__mayaId = `${r?._identifier.type}:::${r._identifier.value}`
+                                    t.push(row)
+                                })
+                                input = t
                             }
-                            row.__mayaId = `${r?._identifier.type}:::${r._identifier.value}`
-                            t.push(row)
-                        })
-                        input = [t]
-                    }
-                    console.log('da rule', rule)
+                        } else {
+                            if(!Array.isArray(input) && typeof input === "object"){
+                                input = [input]
+                            } else if (Array.isArray(input) && typeof input === "object"){
+                                input = input
+                            } else {
+                                console.error("Can't resolve non tabular data")
+                                throw new Error("Can't resolve non tabular data")
+                            }
+                        }
+                        if (rule.v.startsWith('SELECT')) {
+                            rule.v = rule.v.replace('SELECT', 'SELECT __mayaId,')
+                        }
 
-                    if (rule.v.startsWith('SELECT')) {
-                        rule.v = rule.v.replace('SELECT', 'SELECT __mayaId,')
+                        result = alasql(rule.v, [input]);
+                    } catch (e) {
+                        console.error(e)
+                        error = {
+                            error:'Error executing query at index ' + index + ': '+rule.v,
+                            exception: e
+                        };
                     }
-
-                    result = alasql(rule.v, input);
-                } catch (e) {
-                    error = {
-                        error:'Error executing query at index ' + index + ': '+rule.v,
-                        exception: e
-                    };
-                }
-                sendMessageToOutput(index, error || result, msg, table);
-                if(!node.checkall){
-                    if(result && result.length >0) {
-                        break;
+                    sendMessageToOutput(index, error || result, msg, table);
+                    if(!node.checkall){
+                        if(result && result.length >0) {
+                            break;
+                        }
                     }
                 }
+            } catch (error) {
+                console.error(error)
+                sendMessageToOutput(0, error || result, msg, null, null);
             }
         });
 
