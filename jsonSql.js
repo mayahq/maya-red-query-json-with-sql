@@ -518,8 +518,11 @@ module.exports = function (RED) {
         function getTypeMap(tableData) {
             const lastRow = tableData[tableData.length - 1]
             const typeMap = {}
-
-            Object.entries(lastRow.fields).forEach(([key, val]) => typeMap[key] = val.type)
+            if(Object.keys(lastRow).includes("fields")){
+                Object.entries(lastRow.fields).forEach(([key, val]) => typeMap[key] = val.type)
+            } else {
+                Object.entries(lastRow).forEach(([key, val]) => typeMap[key] = typeof val)
+            }
             return typeMap
         }
 
@@ -624,13 +627,13 @@ module.exports = function (RED) {
                 const isTableSpec = validateRowUpdateTypeData(input)
                 // console.log(validateRowUpdateTypeData(input))
                 for (const [index, rule] of node.rules.entries()) {
-                    let result, error, table;
+                    let result, error;
                     try {
+                        // table = input
                         if (isTableSpec){
-                            table = input
-                            if(table && table.length > 0){
+                            if(input && input.length > 0){
                                 let t = []
-                                table.forEach(r => {
+                                input.forEach(r => {
                                     let cols = Object.keys(r["fields"])
                                     let row = {}
                                     for(let index = 0; index < cols.length; index++){
@@ -643,9 +646,14 @@ module.exports = function (RED) {
                             }
                         } else {
                             if(!Array.isArray(input) && typeof input === "object"){
+                                input["__mayaId"] = `rowIndex:::0`
                                 input = [input]
                             } else if (Array.isArray(input) && typeof input === "object"){
-                                input = input
+                                input = input.map((val, index) => {
+                                    val["__mayaId"] = `rowIndex:::${index}`
+                                    return val
+                                }
+                                    )
                             } else {
                                 console.error("Can't resolve non tabular data")
                                 throw new Error("Can't resolve non tabular data")
@@ -654,20 +662,19 @@ module.exports = function (RED) {
                         if (rule.v.startsWith('SELECT')) {
                             rule.v = rule.v.replace('SELECT', 'SELECT __mayaId,')
                         }
-
                         result = alasql(rule.v, [input]);
+                        sendMessageToOutput(index, error || result, msg, input);
+                        if(!node.checkall){
+                            if(result && result.length >0) {
+                                break;
+                            }
+                        }
                     } catch (e) {
                         console.error(e)
                         error = {
                             error:'Error executing query at index ' + index + ': '+rule.v,
                             exception: e
                         };
-                    }
-                    sendMessageToOutput(index, error || result, msg, table);
-                    if(!node.checkall){
-                        if(result && result.length >0) {
-                            break;
-                        }
                     }
                 }
             } catch (error) {
